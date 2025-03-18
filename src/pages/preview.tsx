@@ -3,6 +3,15 @@ import { NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 
+// Import generated components
+import Layout from '../../components/generated/Layout';
+import Hero from '../../components/generated/Hero';
+import FeaturedMenu from '../../components/generated/FeaturedMenu';
+import About from '../../components/generated/About';
+import Menu from '../../components/generated/Menu';
+import Location from '../../components/generated/Location';
+import Contact from '../../components/generated/Contact';
+
 // Define the data types
 type SitemapSection = {
   type: string;
@@ -47,7 +56,8 @@ type WebsiteData = {
 const Preview: NextPage = () => {
   const [websiteData, setWebsiteData] = useState<WebsiteData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [activePage, setActivePage] = useState<string>('Home');
+  const [showStructure, setShowStructure] = useState<boolean>(false);
 
   useEffect(() => {
     // In a production environment, we would fetch the generated website data
@@ -72,13 +82,6 @@ const Preview: NextPage = () => {
       setLoading(false);
     }
   }, []);
-
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
 
   if (loading) {
     return (
@@ -128,6 +131,215 @@ const Preview: NextPage = () => {
   // Derive navigation items from sitemap
   const navItems = Object.keys(sitemap);
 
+  // Parse opening hours into an object
+  const openingHours = {
+    'Monday - Thursday': '11:30 - 22:00',
+    'Friday - Saturday': '11:30 - 23:00',
+    'Sunday': '12:00 - 21:00'
+  };
+
+  // Create menu data
+  const menuData = {
+    categories: [
+      {
+        title: 'Starters',
+        items: [
+          { name: 'Cured Salmon', price: '2.390 kr.', description: 'With mustard sauce and rye bread' },
+          { name: 'Smoked Duck', price: '2.690 kr.', description: 'With berry sauce' },
+          { name: 'Mushroom Soup', price: '1.990 kr.', description: 'With truffle oil' }
+        ]
+      },
+      {
+        title: 'Main Courses',
+        items: [
+          { name: 'Lamb Rack', price: '4.990 kr.', description: 'With root vegetables and red wine sauce' },
+          { name: 'Arctic Char', price: '3.890 kr.', description: 'With butter sauce and herb potatoes' },
+          { name: 'Beef Tenderloin', price: '5.490 kr.', description: 'With béarnaise sauce and fried potatoes' },
+          { name: 'Vegetarian Dish of the Day', price: '3.290 kr.', description: 'Ask your server for details' }
+        ]
+      },
+      {
+        title: 'Desserts',
+        items: [
+          { name: 'Skyr', price: '1.490 kr.', description: 'With berries and honey' },
+          { name: 'Chocolate Cake', price: '1.690 kr.', description: 'With vanilla ice cream' },
+          { name: 'Crème Brûlée', price: '1.590 kr.', description: 'Classic French dessert with a Nordic twist' }
+        ]
+      }
+    ]
+  };
+
+  // Featured menu items
+  const featuredItems = [
+    { name: 'Lamb Rack', price: '4.990 kr.', description: 'With root vegetables and red wine sauce' },
+    { name: 'Arctic Char', price: '3.890 kr.', description: 'With butter sauce and herb potatoes' },
+    { name: 'Mushroom Soup', price: '1.990 kr.', description: 'With truffle oil and freshly baked bread' }
+  ];
+
+  // Function to render the specific section based on type
+  const renderSection = (type: string, description: string, index: number) => {
+    switch (type) {
+      case 'Hero Section':
+        return (
+          <Hero
+            key={index}
+            title={restaurantData.name}
+            description={restaurantData.description}
+            primaryColor={colors.primary}
+            secondaryColor={colors.secondary}
+            accentColor={colors.accent}
+            headingFont={typography.headings}
+            bodyFont={typography.body}
+          />
+        );
+      
+      case 'Featured Menu Items':
+      case 'Featured':
+        return (
+          <FeaturedMenu
+            key={index}
+            title="Featured Dishes"
+            items={featuredItems}
+            primaryColor={colors.primary}
+            secondaryColor={colors.secondary}
+            accentColor={colors.accent}
+            headingFont={typography.headings}
+            bodyFont={typography.body}
+          />
+        );
+      
+      case 'About Section':
+      case 'About':
+      case 'About Us':
+        return (
+          <About
+            key={index}
+            title={`About ${restaurantData.name}`}
+            description={restaurantData.description}
+            additionalText="Our commitment to quality means we source the freshest local ingredients, working closely with Icelandic farmers and fishermen to bring you authentic Nordic flavors with a modern twist."
+            primaryColor={colors.primary}
+            secondaryColor={colors.secondary}
+            backgroundColor={colors.background}
+            headingFont={typography.headings}
+            bodyFont={typography.body}
+          />
+        );
+
+      case 'Menu':
+      case 'Menu Categories':
+        return (
+          <Menu
+            key={index}
+            title="Our Menu"
+            categories={menuData.categories}
+            primaryColor={colors.primary}
+            accentColor={colors.accent}
+            headingFont={typography.headings}
+            bodyFont={typography.body}
+          />
+        );
+
+      case 'Contact Form':
+      case 'Contact Information':
+      case 'Contact':
+        return (
+          <Contact
+            key={index}
+            title="Contact Us"
+            location={restaurantData.location || 'Laugavegur 105, 101 Reykjavík'}
+            phone={restaurantData.phone || '552-1234'}
+            email={restaurantData.email || 'midgardur@example.is'}
+            openingHours={openingHours}
+            primaryColor={colors.primary}
+            accentColor={colors.accent}
+            headingFont={typography.headings}
+            bodyFont={typography.body}
+          />
+        );
+
+      case 'Map and Directions':
+      case 'Location':
+        return (
+          <Location
+            key={index}
+            title="Our Location"
+            address={restaurantData.location || 'Laugavegur 105, 101 Reykjavík'}
+            description="We are located in the heart of downtown Reykjavík on Laugavegur, the main shopping street. Look for our distinctive blue facade with the wooden sign."
+            primaryColor={colors.primary}
+            headingFont={typography.headings}
+            bodyFont={typography.body}
+          />
+        );
+
+      // Add more section types as needed
+      default:
+        return (
+          <section key={index} className="py-10 px-6 border-t">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-2xl mb-4" style={{ fontFamily: typography.headings, color: colors.primary }}>
+                {type}
+              </h2>
+              <p className="mb-4 text-gray-600">
+                {description}
+              </p>
+              <div className="p-6 border rounded-md bg-gray-50 text-center">
+                <p>This section will be generated based on your sitemap.</p>
+              </div>
+            </div>
+          </section>
+        );
+    }
+  };
+
+  // Render the current page based on the sitemap
+  const renderCurrentPage = () => {
+    if (!sitemap[activePage]) return null;
+    
+    return sitemap[activePage].map((section, index) => 
+      renderSection(section.type, section.description, index)
+    );
+  };
+
+  // Render the sitemap structure if requested
+  const renderSitemapStructure = () => {
+    if (!showStructure) return null;
+    
+    return (
+      <div className="container mx-auto py-12 px-6">
+        <h2 className="text-3xl mb-8 text-center" style={{ fontFamily: typography.headings }}>
+          Sitemap Structure
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {Object.entries(sitemap).map(([pageName, sections]) => (
+            <div key={pageName} className="border rounded-lg p-6 shadow-sm">
+              <h3 className="text-2xl mb-4" style={{ fontFamily: typography.headings }}>
+                {pageName}
+              </h3>
+              <ul className="space-y-4">
+                {sections.map((section: SitemapSection, index: number) => (
+                  <li key={index} className="border-l-4 pl-4 py-2" style={{ borderColor: colors.accent }}>
+                    <h4 className="font-semibold text-lg mb-1">{section.type}</h4>
+                    <p className="text-sm text-gray-600">{section.description}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const footerData = {
+    name: restaurantData.name,
+    description: restaurantData.description,
+    location: restaurantData.location || 'Laugavegur 105, 101 Reykjavík',
+    phone: restaurantData.phone || 'Phone: 552-1234',
+    email: restaurantData.email || 'Email: midgardur@example.is',
+    openingHours: openingHours
+  };
+
   return (
     <>
       <Head>
@@ -160,131 +372,49 @@ const Preview: NextPage = () => {
         }
       `}</style>
       
-      <div className="preview-container">
-        {/* Header/Navigation */}
-        <header className="py-4 px-6 flex justify-between items-center" style={{ backgroundColor: colors.primary }}>
-          <div className="text-white text-2xl font-semibold" style={{ fontFamily: typography.headings }}>
-            {restaurantData.name || 'Restaurant Name'}
-          </div>
-          <nav>
-            <ul className="flex space-x-6">
-              {navItems.map((item) => (
-                <li key={item}>
-                  <a href="#" className="text-white hover:text-opacity-80 transition">
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </header>
+      <Layout
+        title={restaurantData.name}
+        navItems={navItems}
+        activePage={activePage}
+        onPageChange={setActivePage}
+        primaryColor={colors.primary}
+        secondaryColor={colors.secondary}
+        backgroundColor={colors.background}
+        textColor={colors.text}
+        headingFont={typography.headings}
+        bodyFont={typography.body}
+        footerData={footerData}
+      >
+        {/* Render current page content */}
+        {renderCurrentPage()}
         
-        {/* Hero Section */}
-        <section className="py-16 px-6 text-center" style={{ 
-          backgroundColor: colors.secondary,
-          color: '#fff',
-          minHeight: '500px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          backgroundImage: 'linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(/restaurant-bg.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}>
-          <h1 className="text-5xl mb-6 text-white" style={{ fontFamily: typography.headings }}>
-            {restaurantData.name || 'Restaurant Name'}
-          </h1>
-          <p className="text-xl mb-8 max-w-2xl mx-auto text-white">
-            {restaurantData.description || 'A unique culinary experience with the finest ingredients...'}
-          </p>
-          <div className="flex justify-center space-x-4">
-            <button className="px-6 py-3 rounded" style={{ backgroundColor: colors.accent }}>
-              Reserve a Table
-            </button>
-            <button className="px-6 py-3 bg-transparent border border-white rounded">
-              View Menu
-            </button>
-          </div>
-        </section>
-        
-        {/* Sitemap Data Section */}
-        <div className="container mx-auto py-12 px-6">
-          <h2 className="text-3xl mb-8 text-center" style={{ fontFamily: typography.headings }}>
-            Sitemap Structure
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {Object.entries(sitemap).map(([pageName, sections]) => (
-              <div key={pageName} className="border rounded-lg p-6 shadow-sm">
-                <h3 className="text-2xl mb-4" style={{ fontFamily: typography.headings }}>
-                  {pageName}
-                </h3>
-                <ul className="space-y-4">
-                  {sections.map((section: SitemapSection, index: number) => (
-                    <li key={index} className="border-l-4 pl-4 py-2" style={{ borderColor: colors.accent }}>
-                      <h4 className="font-semibold text-lg mb-1">{section.type}</h4>
-                      <p className="text-sm text-gray-600">{section.description}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+        {/* Render sitemap structure if requested */}
+        {renderSitemapStructure()}
+      </Layout>
+      
+      {/* Navigation Controls */}
+      <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white p-4 text-center">
+        <div className="mb-2 flex items-center justify-center">
+          <label className="flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={showStructure} 
+              onChange={() => setShowStructure(!showStructure)} 
+              className="mr-2"
+            />
+            Show Sitemap Structure
+          </label>
         </div>
-        
-        {/* Brand Guide Section */}
-        <div className="py-12 px-6" style={{ backgroundColor: colors.background }}>
-          <div className="container mx-auto">
-            <h2 className="text-3xl mb-8 text-center" style={{ fontFamily: typography.headings }}>
-              Brand Guide
-            </h2>
-            
-            <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-sm">
-              <h3 className="text-2xl mb-4" style={{ fontFamily: typography.headings }}>Color Palette: {brandGuide.palette.name}</h3>
-              
-              <div className="grid grid-cols-5 gap-4 mb-8">
-                {brandGuide.palette.colors.map((color: string, index: number) => (
-                  <div key={index} className="text-center">
-                    <div 
-                      className="h-16 w-full rounded-lg mb-2" 
-                      style={{ backgroundColor: color }}
-                    ></div>
-                    <span className="text-sm">{color}</span>
-                  </div>
-                ))}
-              </div>
-              
-              <h3 className="text-2xl mb-4" style={{ fontFamily: typography.headings }}>Typography</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <h4 className="font-semibold mb-2">Headings</h4>
-                  <p className="text-2xl" style={{ fontFamily: typography.headings }}>
-                    {typography.headings.split(',')[0]}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Body Text</h4>
-                  <p style={{ fontFamily: typography.body }}>
-                    {typography.body.split(',')[0]}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Navigation Controls */}
-        <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-80 text-white p-4 text-center">
-          <p className="mb-2">This is a preview of your generated website. The final implementation will use this structure.</p>
-          <div className="flex justify-center space-x-4">
-            <Link href="/website" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-              Return to Generator
-            </Link>
-            <Link href="/" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
-              Start Over
-            </Link>
-          </div>
+        <div className="flex justify-center space-x-4">
+          <Link href="/website" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+            Return to Generator
+          </Link>
+          <Link href="/generated-website" className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition">
+            Generate Real Website
+          </Link>
+          <Link href="/" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
+            Start Over
+          </Link>
         </div>
       </div>
     </>

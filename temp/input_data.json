@@ -1,0 +1,10 @@
+{
+  "name": "Miðgarður Veitingahús",
+  "description": "Miðgarður er notalegur veitingastaður sem sérhæfir sig í norrænni matargerð með íslensku ívafi. Við leggjum áherslu á ferskt, staðbundið hráefni og bjóðum upp á hlýlegt andrúmsloft fyrir allar tegundir af tilefnum.",
+  "menu": "Forréttir:\n- Grafinn lax með sinnepssósu og rúgbrauði (2.390 kr.)\n- Reykt andabringa með berjasósu (2.690 kr.)\n- Sveppasúpa með truffluolíu (1.990 kr.)\n\nAðalréttir:\n- Lambahryggur með rótargrænmeti og rauðvínssósu (4.990 kr.)\n- Þorskur með smjöri og kartöflum (3.890 kr.)\n- Nautalund með bernaise og steiktum kartöflum (5.490 kr.)\n- Grænmetisréttur dagsins (3.290 kr.)\n\nEftirréttir:\n- Skyr með berjum og hunangi (1.490 kr.)\n- Súkkulaðikaka með vanilluís (1.690 kr.)\n- Crème brûlée (1.590 kr.)",
+  "location": "Laugavegur 105, 101 Reykjavík",
+  "openingHours": "Mánudagur - Fimmtudagur: 11:30 - 22:00\nFöstudagur - Laugardagur: 11:30 - 23:00\nSunnudagur: 12:00 - 21:00",
+  "phone": "552-1234",
+  "email": "midgardur@example.is",
+  "socialMedia": "Facebook: /midgardur\nInstagram: @midgardur_restaurant\nTripadvisor: Miðgarður Veitingahús"
+}

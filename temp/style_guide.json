@@ -1,0 +1,13 @@
+{
+  "colors": {
+    "primary": "#4A6C6F",
+    "secondary": "#846C5B",
+    "accent": "#9B8357",
+    "text": "#C3B299",
+    "background": "#F1EDEA"
+  },
+  "typography": {
+    "headings": "Oswald, sans-serif",
+    "body": "Open Sans, sans-serif"
+  }
+}

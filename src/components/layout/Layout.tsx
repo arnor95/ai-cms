@@ -27,6 +27,9 @@ export default function Layout({ children }: LayoutProps) {
             <Link href="/generate" className="text-sm font-medium transition-colors hover:text-primary">
               Búa til kóða
             </Link>
+            <Link href="/agent-status" className="text-sm font-medium transition-colors hover:text-primary">
+              Agent Status
+            </Link>
           </nav>
         </div>
       </header>

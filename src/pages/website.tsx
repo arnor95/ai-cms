@@ -167,8 +167,8 @@ const Website: NextPage = () => {
           <p className="font-medium">Vefsíða búin til!</p>
           <p className="mt-1">Vefsíðan þín er tilbúin til að skoða og breyta.</p>
           <div className="mt-4 flex space-x-3">
-            <Button>Skoða vefsíðu</Button>
-            <Button variant="outline">Breyta vefsíðu</Button>
+            <Button onClick={() => router.push('/preview')}>Skoða vefsíðuforskön</Button>
+            <Button onClick={() => router.push('/generated-website')} variant="default" className="bg-purple-600 hover:bg-purple-700">Búa til alvöru vefsíðu</Button>
           </div>
         </div>
       );
