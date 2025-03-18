@@ -8,6 +8,7 @@ import os
 import sys
 import base64
 from typing import Dict, List, Optional, Union
+from dotenv import load_dotenv
 
 try:
     import anthropic
@@ -20,36 +21,45 @@ class BrandGuideAgent:
     Agent responsible for generating a website brand guide based on user input.
     """
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key=None):
         """
         Initialize the BrandGuideAgent.
         
         Args:
-            api_key: The Anthropic API key
+            api_key: The Anthropic API key (optional, will use ANTHROPIC_API_KEY env var if not provided)
         """
-        self.client = anthropic.Anthropic(api_key=api_key)
+        # Load environment variables from .env file
+        load_dotenv()
+        
+        # Use provided API key or get from environment
+        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
+        if not self.api_key:
+            raise ValueError("Anthropic API key is required. Provide it directly or set ANTHROPIC_API_KEY environment variable.")
+        
+        self.client = anthropic.Anthropic(api_key=self.api_key)
         self.output_file = "brand-guide.json"
     
-    def generate_style_guide(self, 
-                           business_name: str, 
-                           business_description: str,
-                           logo_base64: Optional[str] = None,
-                           color_preferences: Optional[Dict[str, str]] = None) -> Dict:
+    def generate_style_guide(self, input_data: Dict) -> Dict:
         """
         Generate a brand style guide based on business inputs.
         
         Args:
-            business_name: Name of the business
-            business_description: Description of the business
-            logo_base64: Optional base64-encoded logo image
-            color_preferences: Optional color preferences
+            input_data: Dictionary containing business data including:
+                - name: Business name
+                - description: Business description
+                - logo: Base64 encoded logo (optional)
+                - colors: Color preferences dictionary (optional)
             
         Returns:
             Dict: The generated brand guide
         """
+        business_name = input_data.get("name", "")
+        business_description = input_data.get("description", "")
+        logo_base64 = input_data.get("logo")
+        color_preferences = input_data.get("colors", {})
+        
         prompt = f"""
-        You are a brand designer tasked with creating a style guide for {business_name}.
-        Business description: {business_description}
+        Generate a style guide for a website based on this description: {business_description} for {business_name}.
         
         Create a comprehensive brand guide that would best represent this business.
         The brand guide should include:
@@ -77,7 +87,7 @@ class BrandGuideAgent:
             model="claude-3-sonnet-20240229",
             max_tokens=4000,
             temperature=0.7,
-            system="You are a brand design expert who creates detailed style guides for businesses.",
+            system="You are a brand design expert who creates detailed style guides for businesses. Return only valid JSON.",
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -110,28 +120,25 @@ class BrandGuideAgent:
         
         return brand_guide
     
-    def edit_style_guide(self, edits: Dict) -> Dict:
+    def edit_style_guide(self) -> Dict:
         """
-        Edit an existing brand guide.
+        Allow manual editing of the brand guide.
         
-        Args:
-            edits: Dictionary containing edits to apply to the brand guide
-            
         Returns:
-            Dict: The updated brand guide
+            Dict: The edited brand guide
         """
         if not os.path.exists(self.output_file):
+            print(f"Error: {self.output_file} not found")
             return {}
         
         try:
+            print(f"Edit {self.output_file} manually and save changes.")
+            # In a real application, this would open a UI editor
+            # For now, just inform the user to edit the file manually
+            input("Press Enter after editing the brand guide file...")
+            
             with open(self.output_file, 'r') as f:
                 brand_guide = json.load(f)
-                
-            # Apply edits (recursive merge)
-            self._deep_update(brand_guide, edits)
-                
-            # Save updated brand guide
-            self._save_brand_guide(brand_guide)
             
             return brand_guide
         except Exception as e:
@@ -201,35 +208,12 @@ class BrandGuideAgent:
                 }
             }
         }
-    
-    def _deep_update(self, original: Dict, updates: Dict) -> Dict:
-        """
-        Recursively update a dictionary.
-        
-        Args:
-            original: The original dictionary to update
-            updates: The updates to apply
-            
-        Returns:
-            Dict: The updated dictionary
-        """
-        for key, value in updates.items():
-            if isinstance(value, dict) and key in original and isinstance(original[key], dict):
-                self._deep_update(original[key], value)
-            else:
-                original[key] = value
-        return original
 
 
 if __name__ == "__main__":
     # Simple CLI interface
     if len(sys.argv) < 3:
         print("Usage: python brand_guide_agent.py <business_name> <business_description> [logo_file] [color_primary:color_secondary]")
-        sys.exit(1)
-    
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        print("Error: ANTHROPIC_API_KEY environment variable not set")
         sys.exit(1)
     
     business_name = sys.argv[1]
@@ -256,6 +240,17 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Error processing color preferences: {e}")
     
-    agent = BrandGuideAgent(api_key)
-    brand_guide = agent.generate_style_guide(business_name, business_description, logo_base64, color_preferences)
-    print(json.dumps(brand_guide, indent=2)) 
+    # Prepare input data
+    input_data = {
+        "name": business_name,
+        "description": business_description,
+        "logo": logo_base64,
+        "colors": color_preferences
+    }
+    
+    agent = BrandGuideAgent()
+    brand_guide = agent.generate_style_guide(input_data)
+    print("Generated brand guide:", json.dumps(brand_guide, indent=2))
+    # Pause for manual editing
+    edited_brand_guide = agent.edit_style_guide()
+    print("Edited brand guide:", json.dumps(edited_brand_guide, indent=2)) 

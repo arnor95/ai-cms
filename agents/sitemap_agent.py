@@ -7,6 +7,7 @@ import json
 import os
 import sys
 from typing import Dict, List, Optional
+from dotenv import load_dotenv
 
 try:
     import anthropic
@@ -19,20 +20,25 @@ class SitemapAgent:
     Agent responsible for generating a website sitemap based on user input.
     """
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key=None):
         """
         Initialize the SitemapAgent.
         
         Args:
-            api_key: The Anthropic API key
+            api_key: The Anthropic API key (optional, will use ANTHROPIC_API_KEY env var if not provided)
         """
-        self.client = anthropic.Anthropic(api_key=api_key)
+        # Load environment variables from .env file
+        load_dotenv()
+        
+        # Use provided API key or get from environment
+        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
+        if not self.api_key:
+            raise ValueError("Anthropic API key is required. Provide it directly or set ANTHROPIC_API_KEY environment variable.")
+        
+        self.client = anthropic.Anthropic(api_key=self.api_key)
         self.output_file = "sitemap.json"
     
-    def generate_sitemap(self, 
-                        business_name: str, 
-                        business_description: str, 
-                        layout_prompt: Optional[str] = None) -> Dict:
+    def generate_sitemap(self, business_name: str, business_description: str, layout_prompt: Optional[str] = None) -> Dict:
         """
         Generate a sitemap based on business inputs.
         
@@ -45,10 +51,10 @@ class SitemapAgent:
             Dict: The generated sitemap
         """
         prompt = f"""
-        You are a website architect tasked with creating a sitemap for {business_name}.
-        Business description: {business_description}
+        Generate a sitemap for a website based on this description: {business_description} for {business_name}.
         
-        Create a sitemap for a website that would best represent this business.
+        Suggest key pages (e.g., Homepage, About Us) and sections (e.g., hero section, about section).
+        
         The sitemap should include:
         1. A list of pages (e.g., Home, About, Services, Contact)
         2. For each page, a list of sections that should appear on that page
@@ -67,14 +73,13 @@ class SitemapAgent:
             model="claude-3-sonnet-20240229",
             max_tokens=4000,
             temperature=0.7,
-            system="You are a website architecture expert who creates detailed sitemaps for businesses.",
+            system="You are a website architecture expert who creates detailed sitemaps for businesses. Return only valid JSON.",
             messages=[
                 {"role": "user", "content": prompt}
             ]
         )
         
         # Extract the JSON from the response
-        # This is a simplification - in practice, you might need more robust extraction
         try:
             response_text = response.content[0].text
             # Find the JSON part - look for the first { and last }
@@ -95,29 +100,25 @@ class SitemapAgent:
         
         return sitemap
     
-    def edit_sitemap(self, edits: Dict) -> Dict:
+    def edit_sitemap(self) -> Dict:
         """
-        Edit an existing sitemap.
+        Allow manual editing of the sitemap.
         
-        Args:
-            edits: Dictionary containing edits to apply to the sitemap
-            
         Returns:
-            Dict: The updated sitemap
+            Dict: The edited sitemap
         """
         if not os.path.exists(self.output_file):
+            print(f"Error: {self.output_file} not found")
             return {}
         
         try:
+            print(f"Edit {self.output_file} manually and save changes.")
+            # In a real application, this would open a UI editor
+            # For now, just inform the user to edit the file manually
+            input("Press Enter after editing the sitemap file...")
+            
             with open(self.output_file, 'r') as f:
                 sitemap = json.load(f)
-                
-            # Apply edits
-            for page, sections in edits.items():
-                sitemap[page] = sections
-                
-            # Save updated sitemap
-            self._save_sitemap(sitemap)
             
             return sitemap
         except Exception as e:
@@ -168,15 +169,13 @@ if __name__ == "__main__":
         print("Usage: python sitemap_agent.py <business_name> <business_description> [layout_prompt]")
         sys.exit(1)
     
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        print("Error: ANTHROPIC_API_KEY environment variable not set")
-        sys.exit(1)
-    
     business_name = sys.argv[1]
     business_description = sys.argv[2]
     layout_prompt = sys.argv[3] if len(sys.argv) > 3 else None
     
-    agent = SitemapAgent(api_key)
+    agent = SitemapAgent()
     sitemap = agent.generate_sitemap(business_name, business_description, layout_prompt)
-    print(json.dumps(sitemap, indent=2)) 
+    print("Generated sitemap:", json.dumps(sitemap, indent=2))
+    # Pause for manual editing
+    edited_sitemap = agent.edit_sitemap()
+    print("Edited sitemap:", json.dumps(edited_sitemap, indent=2)) 
