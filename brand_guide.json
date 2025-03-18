@@ -1,0 +1,22 @@
+{
+  "colors": {
+    "primary": "#2A4B8D",
+    "secondary": "#E8A87C",
+    "accent": "#85C7DE",
+    "background": "#F8F8F8",
+    "text": "#333333"
+  },
+  "typography": {
+    "headings": "Playfair Display, serif",
+    "body": "Montserrat, sans-serif"
+  },
+  "logo": {
+    "type": "text",
+    "text": "Miðgarður"
+  },
+  "style": {
+    "borderRadius": "0.5rem",
+    "buttonStyle": "rounded",
+    "boxShadow": "subtle"
+  }
+} 

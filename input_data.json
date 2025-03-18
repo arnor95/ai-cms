@@ -1,0 +1,10 @@
+{
+  "name": "Miðgarður Restaurant",
+  "description": "A modern Nordic restaurant that celebrates Icelandic cuisine with fresh, local ingredients. Our chefs create innovative dishes that honor traditional flavors while bringing a contemporary twist to every plate.",
+  "menu": "Starters: Smoked Arctic Char, Icelandic Lamb Soup, Beetroot Salad\nMain Courses: Grilled Lamb Fillet, Pan-Seared Arctic Char, Vegetable Wellington\nDesserts: Skyr Mousse, Rhubarb Crumble, Chocolate Lava Cake",
+  "location": "Laugavegur 101, 101 Reykjavík, Iceland",
+  "openingHours": "Monday - Thursday: 17:00 - 22:00\nFriday - Saturday: 17:00 - 23:00\nSunday: 17:00 - 21:00",
+  "phone": "+354 555 1234",
+  "email": "info@midgardur.is",
+  "socialMedia": "Instagram: @midgardurrestaurant\nFacebook: /MidgardurRestaurant"
+} 

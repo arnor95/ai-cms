@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import { NextPage } from 'next';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
+import Link from 'next/link';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
@@ -12,18 +14,22 @@ type SitemapSection = {
 };
 
 type Sitemap = {
-  [key: string]: SitemapSection[];
+  [pageName: string]: SitemapSection[];
 };
 
 type RestaurantData = {
   name: string;
   description: string;
-  menu: string;
-  location: string;
-  openingHours: string;
-  phone: string;
-  email: string;
-  socialMedia: string;
+  menu?: string;
+  location?: string;
+  openingHours?: string;
+  phone?: string;
+  email?: string;
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+  };
 };
 
 type BrandGuide = {
@@ -33,147 +39,107 @@ type BrandGuide = {
     description: string;
   };
   fontPair: string;
-  businessName: string;
+  businessName?: string;
 };
 
-export default function WebsitePage() {
+const Website: NextPage = () => {
   const router = useRouter();
-  const [businessName, setBusinessName] = useState('');
+  const [businessName, setBusinessName] = useState<string>('');
   const [brandGuide, setBrandGuide] = useState<BrandGuide | null>(null);
   const [sitemap, setSitemap] = useState<Sitemap | null>(null);
   const [restaurantData, setRestaurantData] = useState<RestaurantData | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationComplete, setGenerationComplete] = useState(false);
+  const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [generationComplete, setGenerationComplete] = useState<boolean>(false);
 
-  // Load data from sessionStorage
   useEffect(() => {
+    // Load data from sessionStorage
     try {
-      // Load business name
-      const savedBusinessName = sessionStorage.getItem('businessName');
-      if (savedBusinessName) {
-        setBusinessName(savedBusinessName);
+      const storedBusinessName = sessionStorage.getItem('businessName');
+      const storedRestaurantData = sessionStorage.getItem('restaurantData');
+      const storedSitemap = sessionStorage.getItem('sitemap');
+      const storedBrandGuide = sessionStorage.getItem('brandGuide');
+
+      if (storedBusinessName) {
+        setBusinessName(storedBusinessName);
       }
 
-      // Load brand guide
-      const savedBrandGuide = sessionStorage.getItem('brandGuide');
-      if (savedBrandGuide) {
-        setBrandGuide(JSON.parse(savedBrandGuide));
+      if (storedRestaurantData) {
+        setRestaurantData(JSON.parse(storedRestaurantData));
       }
 
-      // Load sitemap
-      const savedSitemap = sessionStorage.getItem('sitemap');
-      if (savedSitemap) {
-        setSitemap(JSON.parse(savedSitemap));
+      if (storedSitemap) {
+        setSitemap(JSON.parse(storedSitemap));
       }
 
-      // Load restaurant data
-      const savedRestaurantData = sessionStorage.getItem('restaurantData');
-      if (savedRestaurantData) {
-        setRestaurantData(JSON.parse(savedRestaurantData));
-      } else {
-        // If we don't have complete restaurant data, try to reconstruct it from businessName
-        if (savedBusinessName) {
-          setRestaurantData({
-            name: savedBusinessName,
-            description: '',
-            menu: '',
-            location: '',
-            openingHours: '',
-            phone: '',
-            email: '',
-            socialMedia: '',
-          });
-        }
+      if (storedBrandGuide) {
+        setBrandGuide(JSON.parse(storedBrandGuide));
       }
-
-      // Redirect if missing required data
-      if (!savedSitemap || !savedBrandGuide) {
-        console.warn('[WARN] Missing required data for website generation');
-        router.push('/');
-      }
-    } catch (error) {
-      console.error('[ERROR] Error loading data from sessionStorage:', error);
+    } catch (err) {
+      console.error('Error loading data from sessionStorage:', err);
+      setError('Failed to load saved data. Please go back and try again.');
     }
-  }, [router]);
+  }, []);
 
-  // Prepare data for code_action_agent.py
-  const prepareDataForAgent = () => {
-    // Convert brand guide to format expected by code_action_agent.py
-    const colors = brandGuide?.palette.colors || [];
-    const styleGuide = {
-      colors: {
-        primary: colors[0] || '#000000',
-        secondary: colors[1] || '#ffffff',
-        accent: colors[2] || '#0000ff',
-        background: colors[4] || '#f5f5f5',
-        text: colors[3] || '#333333',
-      },
-      typography: {
-        headings: brandGuide?.fontPair.includes('Playfair') ? 'Playfair Display, serif' : 'Oswald, sans-serif',
-        body: brandGuide?.fontPair.includes('Montserrat') ? 'Montserrat, sans-serif' : 'Open Sans, sans-serif',
-      },
-    };
-
-    // Combine restaurant data for input_data
-    const inputData = {
-      name: businessName || restaurantData?.name || 'Restaurant',
-      description: restaurantData?.description || '',
-      menu: restaurantData?.menu || '',
-      location: restaurantData?.location || '',
-      openingHours: restaurantData?.openingHours || '',
-      contact: {
-        phone: restaurantData?.phone || '',
-        email: restaurantData?.email || '',
-        socialMedia: restaurantData?.socialMedia || '',
-      },
-    };
-
-    return {
-      input_data: inputData,
-      sitemap: sitemap || {},
-      style_guide: styleGuide,
-    };
-  };
-
-  // Generate website using the code_action_agent.py
   const generateWebsite = async () => {
-    setIsGenerating(true);
+    if (!restaurantData || !sitemap || !brandGuide) {
+      setError('Missing required data. Please complete previous steps first.');
+      return;
+    }
+
+    setGenerating(true);
     setError(null);
 
     try {
-      const data = prepareDataForAgent();
-      console.log('[DEBUG] Preparing data for code_action_agent.py:', data);
+      // Prepare the data for the API
+      const requestData = {
+        input_data: restaurantData,
+        sitemap: sitemap,
+        style_guide: brandGuide
+      };
 
-      // In a real implementation, we would:
-      // 1. Save the JSON files to disk
-      // 2. Call the Python agent via API
-      // For now, we'll simulate the process
-
+      // Call the API to generate the website
       const response = await fetch('/api/generate-website', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(requestData),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error(`API returned status ${response.status}`);
+        throw new Error(result.message || 'Failed to generate website');
       }
 
-      const result = await response.json();
-      console.log('[DEBUG] Website generation result:', result);
+      // Save the returned data to sessionStorage if it exists
+      if (result.data) {
+        if (result.data.restaurantData) {
+          sessionStorage.setItem('restaurantData', JSON.stringify(result.data.restaurantData));
+        }
+        if (result.data.sitemap) {
+          sessionStorage.setItem('sitemap', JSON.stringify(result.data.sitemap));
+        }
+        if (result.data.brandGuide) {
+          sessionStorage.setItem('brandGuide', JSON.stringify(result.data.brandGuide));
+        }
+      }
 
-      // Simulate successful generation
-      setTimeout(() => {
-        setIsGenerating(false);
-        setGenerationComplete(true);
-      }, 3000);
-    } catch (error) {
-      console.error('[ERROR] Website generation failed:', error);
-      setError(error instanceof Error ? error.message : 'Unknown error');
-      setIsGenerating(false);
+      // Set generation complete
+      setGenerationComplete(true);
+      
+      // Redirect to the preview page
+      if (result.websiteUrl) {
+        setTimeout(() => {
+          router.push(result.websiteUrl);
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('Error generating website:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate website');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -208,7 +174,7 @@ export default function WebsitePage() {
       );
     }
 
-    if (isGenerating) {
+    if (generating) {
       return (
         <div className="text-center py-6">
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-900 mb-4">
@@ -263,8 +229,8 @@ export default function WebsitePage() {
             <div className="bg-white p-3 rounded border text-sm">
               <p className="mb-2">Litapaletta: {brandGuide.palette.name}</p>
               <div className="flex space-x-1 mb-2">
-                {brandGuide.palette.colors.map((color, i) => (
-                  <div key={i} className="w-6 h-6 rounded-full" style={{ backgroundColor: color }}></div>
+                {brandGuide.palette.colors.map((color, index) => (
+                  <div key={index} className="w-6 h-6 rounded-full" style={{ backgroundColor: color }}></div>
                 ))}
               </div>
               <p>Leturgerðir: {brandGuide.fontPair}</p>
@@ -326,4 +292,6 @@ export default function WebsitePage() {
       </div>
     </Layout>
   );
-} 
+};
+
+export default Website; 
