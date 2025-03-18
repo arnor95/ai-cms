@@ -97,8 +97,12 @@ export default function HomePage() {
     try {
       console.log("[DEBUG] Storing business name in sessionStorage:", restaurantData.name);
       sessionStorage.setItem('businessName', restaurantData.name);
+      
+      // Also store the complete restaurant data
+      console.log("[DEBUG] Storing complete restaurant data in sessionStorage");
+      sessionStorage.setItem('restaurantData', JSON.stringify(restaurantData));
     } catch (storageError) {
-      console.error("[ERROR] Failed to store business name in sessionStorage:", storageError);
+      console.error("[ERROR] Failed to store data in sessionStorage:", storageError);
     }
     
     console.log("[DEBUG] Restaurant data prepared:", {
@@ -574,37 +578,49 @@ export default function HomePage() {
           </div>
           
           <div className="mb-6">
-            <div className="flex items-center">
+            <div className="grid grid-cols-6 gap-0">
               {[1, 2, 3, 4, 5, 6].map((stepNumber) => (
-                <div key={stepNumber} className="flex items-center">
-                  <div 
-                    className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                      step === stepNumber 
-                        ? 'border-primary bg-primary text-white' 
-                        : step > stepNumber 
-                          ? 'border-primary text-primary' 
-                          : 'border-gray-300 text-gray-400'
-                    }`}
-                  >
-                    {step > stepNumber ? '✓' : stepNumber}
-                  </div>
-                  {stepNumber < 6 && (
+                <div key={stepNumber} className="flex flex-col items-center">
+                  <div className="flex items-center w-full">
+                    {stepNumber > 1 && (
+                      <div 
+                        className={`h-1 w-full ${
+                          step >= stepNumber ? 'bg-primary' : 'bg-gray-300'
+                        }`}
+                      ></div>
+                    )}
+                    
                     <div 
-                      className={`w-12 h-1 ${
-                        step > stepNumber ? 'bg-primary' : 'bg-gray-300'
+                      className={`flex items-center justify-center w-8 h-8 rounded-full border-2 shrink-0 ${
+                        step === stepNumber 
+                          ? 'border-primary bg-primary text-white' 
+                          : step > stepNumber 
+                            ? 'border-primary text-primary' 
+                            : 'border-gray-300 text-gray-400'
                       }`}
-                    ></div>
-                  )}
+                    >
+                      {step > stepNumber ? '✓' : stepNumber}
+                    </div>
+                    
+                    {stepNumber < 6 && (
+                      <div 
+                        className={`h-1 w-full ${
+                          step > stepNumber ? 'bg-primary' : 'bg-gray-300'
+                        }`}
+                      ></div>
+                    )}
+                  </div>
+                  
+                  <span className="mt-2 text-xs text-gray-500 text-center w-full">
+                    {stepNumber === 1 && "Grunnupplýsingar"}
+                    {stepNumber === 2 && "Matseðill"}
+                    {stepNumber === 3 && "Samskipti"}
+                    {stepNumber === 4 && "Vefkort"}
+                    {stepNumber === 5 && "Stíll"}
+                    {stepNumber === 6 && "Lokið"}
+                  </span>
                 </div>
               ))}
-            </div>
-            <div className="flex justify-between mt-2 text-xs text-gray-500">
-              <span>Grunnupplýsingar</span>
-              <span>Matseðill</span>
-              <span>Samskipti</span>
-              <span>Vefkort</span>
-              <span>Stíll</span>
-              <span>Lokið</span>
             </div>
           </div>
           
