@@ -95,8 +95,12 @@ const Website: NextPage = () => {
       const requestData = {
         input_data: restaurantData,
         sitemap: sitemap,
-        style_guide: brandGuide
+        style_guide: brandGuide,
+        use_mock: false,
+        create_project: true
       };
+
+      console.log('[DEBUG] Sending website generation request:', JSON.stringify(requestData, null, 2));
 
       // Call the API to generate the website
       const response = await fetch('/api/generate-website', {
@@ -286,7 +290,7 @@ const Website: NextPage = () => {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => router.push('/brand')}>Til baka</Button>
+            <Button variant="outline" onClick={() => router.push('/')}>Til baka</Button>
           </CardFooter>
         </Card>
       </div>

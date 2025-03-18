@@ -187,13 +187,33 @@ export default function AgentStatusPage() {
                       <p>Please fix the following issues to use the code generation features:</p>
                       <ul className="mt-3 list-disc pl-5 space-y-1">
                         {!status.pythonAvailable && (
-                          <li>Install Python 3.x on your system</li>
+                          <>
+                            <li>Install Python 3.x on your system:</li>
+                            <ul className="list-disc pl-5 text-xs mt-1 mb-2">
+                              <li>On macOS: <code className="bg-gray-100 p-1 rounded">brew install python3</code> or download from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">python.org</a></li>
+                              <li>On Windows: Download from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">python.org</a> (make sure to check "Add Python to PATH")</li>
+                              <li>On Linux: <code className="bg-gray-100 p-1 rounded">sudo apt install python3</code> (Ubuntu/Debian) or <code className="bg-gray-100 p-1 rounded">sudo dnf install python3</code> (Fedora)</li>
+                            </ul>
+                          </>
                         )}
                         {!status.scriptFound && (
-                          <li>Ensure the code_action_agent.py script is in the correct location (or update PYTHON_SCRIPT_PATH in your .env file)</li>
+                          <>
+                            <li>Ensure the code_action_agent.py script is in the correct location:</li>
+                            <ul className="list-disc pl-5 text-xs mt-1 mb-2">
+                              <li>Default path: <code className="bg-gray-100 p-1 rounded">/agents/code_action_agent.py</code> in the project root</li>
+                              <li>Or update PYTHON_SCRIPT_PATH in your .env file with the correct path</li>
+                            </ul>
+                          </>
                         )}
                         {!status.anthropicKeySet && (
-                          <li>Set the ANTHROPIC_API_KEY in your .env file</li>
+                          <>
+                            <li>Set the ANTHROPIC_API_KEY in your .env file:</li>
+                            <ul className="list-disc pl-5 text-xs mt-1 mb-2">
+                              <li>Create or edit the .env file in the project root</li>
+                              <li>Add the line: <code className="bg-gray-100 p-1 rounded">ANTHROPIC_API_KEY=your_api_key_here</code></li>
+                              <li>Restart the development server after making changes</li>
+                            </ul>
+                          </>
                         )}
                       </ul>
                     </div>

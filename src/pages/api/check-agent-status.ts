@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { runPythonScript } from '@/middleware/pythonRunner';
 
 const execAsync = promisify(exec);
 
@@ -20,21 +21,22 @@ export default async function handler(
       version: null as string | null,
     };
 
-    // 1. Check if Python is available
+    // 1. Check if Python is available by trying to run a simple Python command
     try {
-      const { stdout } = await execAsync('python --version');
+      const stdout = await runPythonScript('-c', ['print("Python is available")']);
       status.pythonAvailable = true;
-      status.version = stdout.trim();
-    } catch (error) {
+      
+      // Try to get the Python version
       try {
-        // Try python3 if python command not found
-        const { stdout } = await execAsync('python3 --version');
-        status.pythonAvailable = true;
-        status.version = stdout.trim();
-      } catch (error) {
-        status.error = 'Python not found. Please install Python 3.x';
-        return res.status(200).json(status);
+        const versionOutput = await runPythonScript('-c', ['import sys; print(sys.version)']);
+        status.version = versionOutput.trim();
+      } catch (versionError) {
+        console.warn("Could not determine Python version:", versionError);
+        status.version = "Unknown";
       }
+    } catch (error) {
+      status.error = 'Python not found. Please install Python 3.x';
+      return res.status(200).json(status);
     }
 
     // 2. Check if script exists
@@ -45,7 +47,7 @@ export default async function handler(
     if (fs.existsSync(scriptPath)) {
       status.scriptFound = true;
     } else {
-      status.error = `Script not found at path: ${scriptPath}`;
+      status.error = `AI agent script not found at path: ${scriptPath}`;
       return res.status(200).json(status);
     }
 
@@ -53,7 +55,7 @@ export default async function handler(
     if (process.env.ANTHROPIC_API_KEY) {
       status.anthropicKeySet = true;
     } else {
-      status.error = 'ANTHROPIC_API_KEY environment variable is not set';
+      status.error = 'ANTHROPIC_API_KEY environment variable is not set. Please add it to your .env file.';
       return res.status(200).json(status);
     }
 
@@ -62,9 +64,12 @@ export default async function handler(
     
     return res.status(200).json(status);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Agent status check failed:", errorMessage);
+    
     return res.status(500).json({ 
       ready: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: errorMessage
     });
   }
 } 

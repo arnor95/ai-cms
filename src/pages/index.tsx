@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea/index';
 import { Label } from '@/components/ui/label/index';
 import React from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 
 type RestaurantData = {
   name: string;
@@ -45,6 +46,37 @@ Eftirréttir:
   socialMedia: 'Facebook: /midgardur\nInstagram: @midgardur_restaurant\nTripadvisor: Miðgarður Veitingahús'
 };
 
+// Define color palettes and font pairs
+const colorPalettes = [
+  {
+    name: 'Klassísk',
+    colors: ['#8B4513', '#A0522D', '#CD853F', '#F5DEB3', '#FFFAF0'],
+    description: 'Hlýir brúntónar og sandalir fyrir klassískt yfirbragð'
+  },
+  {
+    name: 'Nútímalegt',
+    colors: ['#2E3B4E', '#3F88C5', '#F39237', '#D63230', '#F5F5F5'],
+    description: 'Djarfir litir með sterka áherslu fyrir nútímalegt útlit'
+  },
+  {
+    name: 'Náttúrulegt',
+    colors: ['#4A6C6F', '#846C5B', '#9B8357', '#C3B299', '#F1EDEA'],
+    description: 'Náttúrulegir tónar sem vísa í íslenskt umhverfi'
+  },
+  {
+    name: 'Líflegur',
+    colors: ['#1D3557', '#457B9D', '#A8DADC', '#E63946', '#F1FAEE'],
+    description: 'Skemmtilegir litir sem skapa líflegt andrúmsloft'
+  }
+];
+
+const fontPairs = [
+  'Playfair Display & Montserrat',
+  'Oswald & Open Sans',
+  'Merriweather & Source Sans Pro',
+  'Roboto Slab & Roboto'
+];
+
 export default function HomePage() {
   const [step, setStep] = useState(1);
   const [restaurantData, setRestaurantData] = useState<RestaurantData>({
@@ -64,7 +96,52 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationComplete, setGenerationComplete] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [generatedProjectId, setGeneratedProjectId] = useState<string | null>(null);
+  
+  const [selectedPalette, setSelectedPalette] = useState<number>(2); // Default to "Náttúrulegt"
+  const [selectedFontPair, setSelectedFontPair] = useState<number>(0); // Default to "Playfair Display & Montserrat"
+  
   const router = useRouter();
+  
+  // Check for step parameter in URL to set the current step
+  useEffect(() => {
+    if (router.isReady) {
+      const { step: stepParam } = router.query;
+      if (stepParam) {
+        const parsedStep = parseInt(stepParam as string, 10);
+        if (!isNaN(parsedStep) && parsedStep > 0 && parsedStep <= 6) {
+          setStep(parsedStep);
+          
+          // Remove the step parameter from the URL without refreshing
+          router.push('/', undefined, { shallow: true });
+        }
+      }
+      
+      // Check if we have saved step in session storage
+      const savedStep = sessionStorage.getItem('current_step');
+      if (savedStep && !stepParam) {
+        const parsedSavedStep = parseInt(savedStep, 10);
+        if (!isNaN(parsedSavedStep) && parsedSavedStep > 0 && parsedSavedStep <= 6) {
+          setStep(parsedSavedStep);
+        }
+      }
+      
+      // Check if we already have sitemap data
+      const sitemapData = sessionStorage.getItem('sitemap');
+      if (sitemapData) {
+        setSitemapGenerated(true);
+      }
+      
+      // Check if we already have brand guide data
+      const brandGuideData = sessionStorage.getItem('brandGuide');
+      if (brandGuideData) {
+        setBrandGuideGenerated(true);
+      }
+    }
+  }, [router.isReady, router.query]);
   
   const updateField = (field: keyof RestaurantData, value: string) => {
     setRestaurantData({
@@ -212,15 +289,74 @@ export default function HomePage() {
   };
   
   const generateBrandGuide = () => {
-    // This would be an API call to generate brand guide based on restaurantData
-    setTimeout(() => {
-      setBrandGuideGenerated(true);
-      nextStep();
-    }, 2000);
+    // This function is now handled directly in the step 5 continue button
+    setBrandGuideGenerated(true);
+    nextStep();
   };
   
   const fillTestData = () => {
     setRestaurantData(testData);
+  };
+  
+  const generateWebsiteCode = async () => {
+    setIsGenerating(true);
+    setGenerationError(null);
+    
+    try {
+      // Retrieve sitemap and brand guide data from session storage
+      const sitemapData = sessionStorage.getItem('sitemap');
+      const brandGuideData = sessionStorage.getItem('brandGuide');
+      
+      if (!sitemapData) {
+        throw new Error('Vefkort vantar. Vinsamlegast búðu til vefkort fyrst.');
+      }
+      
+      if (!brandGuideData) {
+        throw new Error('Vörumerkjaleiðbeiningar vantar. Vinsamlegast búðu til vörumerkjaleiðbeiningar fyrst.');
+      }
+      
+      // Parse the data from sessionStorage
+      const sitemap = JSON.parse(sitemapData);
+      const style_guide = JSON.parse(brandGuideData);
+      
+      const requestData = {
+        input_data: restaurantData,
+        sitemap: sitemap,
+        style_guide: style_guide,
+        use_mock: false,
+        create_project: true
+      };
+      
+      console.log('[DEBUG] Sending website generation request:', JSON.stringify(requestData, null, 2));
+      
+      const response = await fetch('/api/generate-website', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Villa kom upp við að búa til vefsíðu');
+      }
+      
+      const data = await response.json();
+      
+      // Store generated project ID if available
+      if (data.websiteProject && data.websiteProject.id) {
+        setGeneratedProjectId(data.websiteProject.id);
+        sessionStorage.setItem('generatedProjectId', data.websiteProject.id);
+      }
+      
+      setGenerationComplete(true);
+    } catch (error) {
+      console.error('Error generating website:', error);
+      setGenerationError(error instanceof Error ? error.message : 'Villa kom upp við að búa til vefsíðu');
+    } finally {
+      setIsGenerating(false);
+    }
   };
   
   const renderStep = () => {
@@ -433,7 +569,10 @@ export default function HomePage() {
                   <p className="text-sm mb-4">Þú getur valið úr eftirfarandi litapallettum eða látið gervigreind búa til sérsniðna litapallettu fyrir þig.</p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="border rounded-md p-4 hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className={`border rounded-md p-4 hover:bg-gray-50 cursor-pointer ${selectedPalette === 0 ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                      onClick={() => setSelectedPalette(0)}
+                    >
                       <div className="font-medium mb-2">Klassísk</div>
                       <div className="flex space-x-2 mb-2">
                         <div className="w-8 h-8 rounded-full bg-[#8B4513]"></div>
@@ -445,7 +584,10 @@ export default function HomePage() {
                       <div className="text-xs text-gray-500">Hlýir brúntónar og sandalir fyrir klassískt yfirbragð</div>
                     </div>
                     
-                    <div className="border rounded-md p-4 hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className={`border rounded-md p-4 hover:bg-gray-50 cursor-pointer ${selectedPalette === 1 ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                      onClick={() => setSelectedPalette(1)}
+                    >
                       <div className="font-medium mb-2">Nútímalegt</div>
                       <div className="flex space-x-2 mb-2">
                         <div className="w-8 h-8 rounded-full bg-[#2E3B4E]"></div>
@@ -457,7 +599,10 @@ export default function HomePage() {
                       <div className="text-xs text-gray-500">Djarfir litir með sterka áherslu fyrir nútímalegt útlit</div>
                     </div>
                     
-                    <div className="border rounded-md p-4 hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className={`border rounded-md p-4 hover:bg-gray-50 cursor-pointer ${selectedPalette === 2 ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                      onClick={() => setSelectedPalette(2)}
+                    >
                       <div className="font-medium mb-2">Náttúrulegt</div>
                       <div className="flex space-x-2 mb-2">
                         <div className="w-8 h-8 rounded-full bg-[#4A6C6F]"></div>
@@ -469,7 +614,10 @@ export default function HomePage() {
                       <div className="text-xs text-gray-500">Náttúrulegir tónar sem vísa í íslenskt umhverfi</div>
                     </div>
                     
-                    <div className="border rounded-md p-4 hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className={`border rounded-md p-4 hover:bg-gray-50 cursor-pointer ${selectedPalette === 3 ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                      onClick={() => setSelectedPalette(3)}
+                    >
                       <div className="font-medium mb-2">Líflegur</div>
                       <div className="flex space-x-2 mb-2">
                         <div className="w-8 h-8 rounded-full bg-[#1D3557]"></div>
@@ -482,13 +630,18 @@ export default function HomePage() {
                     </div>
                   </div>
                   
-                  <Button className="w-full">Sérsníða litapallettu með gervigreind</Button>
+                  <Button className="w-full" onClick={() => setSelectedPalette(Math.floor(Math.random() * 4))}>
+                    Sérsníða litapallettu með gervigreind
+                  </Button>
                 </div>
                 
                 <div>
                   <h3 className="font-medium text-lg mb-2">Leturgerðir</h3>
                   <div className="space-y-3">
-                    <div className="border rounded-md p-3">
+                    <div 
+                      className={`border rounded-md p-3 cursor-pointer ${selectedFontPair === 0 ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                      onClick={() => setSelectedFontPair(0)}
+                    >
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-medium">Playfair Display & Montserrat</span>
                         <span className="text-xs text-gray-500">Klassískt par</span>
@@ -499,7 +652,10 @@ export default function HomePage() {
                       </div>
                     </div>
                     
-                    <div className="border rounded-md p-3">
+                    <div 
+                      className={`border rounded-md p-3 cursor-pointer ${selectedFontPair === 1 ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                      onClick={() => setSelectedFontPair(1)}
+                    >
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-medium">Oswald & Open Sans</span>
                         <span className="text-xs text-gray-500">Nútímalegt par</span>
@@ -515,7 +671,24 @@ export default function HomePage() {
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={prevStep}>Til baka</Button>
-              <Button onClick={nextStep}>Halda áfram</Button>
+              <Button onClick={() => {
+                // Save selected brand guide choices to sessionStorage
+                try {
+                  const brandGuide = {
+                    palette: colorPalettes[selectedPalette],
+                    fontPair: fontPairs[selectedFontPair],
+                    businessName: restaurantData.name
+                  };
+                  
+                  console.log('[DEBUG] Saving brand guide to sessionStorage:', brandGuide);
+                  sessionStorage.setItem('brandGuide', JSON.stringify(brandGuide));
+                  sessionStorage.setItem('current_step', '6'); // Update to the final step
+                  setBrandGuideGenerated(true);
+                  nextStep();
+                } catch (error) {
+                  console.error('[ERROR] Failed to save brand guide to sessionStorage:', error);
+                }
+              }}>Halda áfram</Button>
             </CardFooter>
           </Card>
         );
@@ -525,26 +698,95 @@ export default function HomePage() {
           <Card>
             <CardHeader>
               <CardTitle>Vefkort og vörumerkjaleiðbeiningar tilbúnar!</CardTitle>
-              <CardDescription>Þú getur nú haldið áfram með vefsíðugerð</CardDescription>
+              <CardDescription>Búum til vefsíðuna með gervigreind</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <p>Þakka þér fyrir að nota AI CMS til að búa til vefkort og vörumerkjaleiðbeiningar fyrir {restaurantData.name}.</p>
                 
-                <div className="border rounded-md p-4 bg-gray-50">
-                  <h3 className="font-medium mb-2">Næstu skref:</h3>
-                  <ul className="space-y-2 list-disc pl-5">
-                    <li>Skoða vefkortið og vörumerkjaleiðbeiningarnar</li>
-                    <li>Byrja að búa til vefsíðueiningarnar</li>
-                    <li>Setja upp vefsíðuna</li>
-                    <li>Tengjast vefhóstinu</li>
-                  </ul>
-                </div>
+                {!isGenerating && !generationComplete && !generationError && (
+                  <div className="border rounded-md p-4 bg-gray-50">
+                    <h3 className="font-medium mb-2">Vefsíðukóði</h3>
+                    <p className="mb-3 text-sm">Nú er allt tilbúið til að búa til vefsíðukóðann með gervigreind. Smelltu á hnappinn hér að neðan til að halda áfram.</p>
+                    <p className="text-xs text-gray-500 mb-4">Þetta getur tekið allt að 30-60 sekúndur.</p>
+                  </div>
+                )}
+                
+                {isGenerating && (
+                  <div className="border rounded-md p-4 bg-blue-50">
+                    <h3 className="font-medium mb-2 text-blue-800">Gervigreind að vinna...</h3>
+                    <div className="flex items-center space-x-3">
+                      <div className="h-4 w-4 bg-blue-600 rounded-full animate-pulse"></div>
+                      <div className="h-4 w-4 bg-blue-600 rounded-full animate-pulse delay-150"></div>
+                      <div className="h-4 w-4 bg-blue-600 rounded-full animate-pulse delay-300"></div>
+                      <span className="text-blue-800 text-sm">Bý til vefsíðukóða fyrir {restaurantData.name}</span>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-3">Athugaðu að þetta ferli getur tekið allt að mínútu.</p>
+                  </div>
+                )}
+                
+                {generationError && (
+                  <div className="border-2 border-red-200 rounded-md p-4 bg-red-50">
+                    <h3 className="font-medium mb-2 text-red-800">Villa kom upp</h3>
+                    <p className="text-sm text-red-600">{generationError}</p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setGenerationError(null)} 
+                      className="mt-3"
+                      size="sm"
+                    >
+                      Reyna aftur
+                    </Button>
+                  </div>
+                )}
+                
+                {generationComplete && (
+                  <div className="border-2 border-green-200 rounded-md p-4 bg-green-50">
+                    <h3 className="font-medium mb-2 text-green-800">Vefsíðukóði tilbúinn!</h3>
+                    <p className="text-sm text-green-700 mb-4">Vefsíðan hefur verið búin til með gervigreind. Þú getur nú skoðað vefsíðuna eða halað niður öllum skrám.</p>
+                    <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
+                      <Link 
+                        href="/generated-website" 
+                        className="inline-flex items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                      >
+                        Skoða vefsíðu
+                      </Link>
+                      {generatedProjectId && (
+                        <>
+                          <Link 
+                            href={`/projects/${generatedProjectId}`}
+                            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          >
+                            Skoða verkefni
+                          </Link>
+                          <a 
+                            href={`/api/projects/${generatedProjectId}?action=download`}
+                            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                          >
+                            Hala niður skrám
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={prevStep}>Til baka</Button>
-              <Button>Byrja vefsíðugerð</Button>
+              {!isGenerating && !generationComplete && (
+                <Button onClick={generateWebsiteCode} disabled={isGenerating}>
+                  Búa til vefsíðukóða
+                </Button>
+              )}
+              {generationComplete && (
+                <Link 
+                  href="/generated-website"
+                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                >
+                  Áfram á nýju vefsíðuna
+                </Link>
+              )}
             </CardFooter>
           </Card>
         );

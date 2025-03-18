@@ -1,12 +1,12 @@
-
 import React from 'react';
 
 interface AboutProps {
-  title?: string; content?: string
+  title?: string;
+  content?: string;
 }
 
 const About = (props: AboutProps) => {
-  const { title?, content? } = props;
+  const { title, content } = props;
   
   return (
     <div className="py-8 px-4">

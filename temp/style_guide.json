@@ -7,7 +7,7 @@
     "background": "#F1EDEA"
   },
   "typography": {
-    "headings": "Oswald, sans-serif",
-    "body": "Open Sans, sans-serif"
+    "headings": "Playfair Display, serif",
+    "body": "Montserrat, sans-serif"
   }
 }

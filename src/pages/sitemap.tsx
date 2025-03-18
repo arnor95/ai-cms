@@ -289,13 +289,14 @@ export default function SitemapPage() {
     try {
       console.log('[DEBUG] Saving sitemap before continuing:', sitemapData);
       sessionStorage.setItem('sitemap', JSON.stringify(sitemapData));
+      sessionStorage.setItem('current_step', '5'); // Indicate we should be on the brand guide step (5)
       console.log('[DEBUG] Sitemap saved successfully');
     } catch (error) {
       console.error('[ERROR] Failed to save sitemap to sessionStorage:', error);
     }
     
-    // Navigate to the brand guide page
-    router.push('/brand');
+    // Navigate back to the home page with a parameter to indicate we should continue to step 5
+    router.push('/?step=5');
   };
   
   return (

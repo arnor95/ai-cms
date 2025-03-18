@@ -1,0 +1,40 @@
+{
+  "name": "",
+  "description": "",
+  "logo": "",
+  "colors": {
+    "primary": "#4A6C6F",
+    "secondary": "#846C5B",
+    "accent": "#9B8357",
+    "text": "#C3B299",
+    "background": "#F1EDEA"
+  },
+  "content": {
+    "about": "Nestled in the heart of a vibrant city, our artisanal bakery is a haven for those seeking the finest baked goods crafted with passion and dedication. With a commitment to using only the freshest, locally-sourced ingredients, we create delectable treats that tantalize the senses and delight the palate. From flaky croissants to decadent cakes, every bite is a celebration of flavor and tradition.",
+    "sections": {
+      "featured": [
+        "Signature Sourdough Loaves",
+        "Artisanal Cheese Danishes",
+        "Seasonal Fruit Tarts"
+      ],
+      "benefits": [
+        "Handcrafted with Love",
+        "Farm-Fresh Ingredients",
+        "Preservative-Free Delights"
+      ]
+    }
+  },
+  "style_guide": {
+    "colors": {
+      "primary": "#4A6C6F",
+      "secondary": "#846C5B",
+      "accent": "#9B8357",
+      "text": "#C3B299",
+      "background": "#F1EDEA"
+    },
+    "typography": {
+      "headings": "Playfair Display, serif",
+      "body": "Montserrat, sans-serif"
+    }
+  }
+}

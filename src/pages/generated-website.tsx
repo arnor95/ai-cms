@@ -71,7 +71,7 @@ const GeneratedWebsite: NextPage = () => {
   const [activePage, setActivePage] = useState<string>('Home');
   const [generatedPages, setGeneratedPages] = useState<string[]>([]);
   const [activeComponent, setActiveComponent] = useState<React.ComponentType<any> | null>(null);
-  const [useMockGeneration, setUseMockGeneration] = useState<boolean>(true);
+  const [useMockGeneration, setUseMockGeneration] = useState<boolean>(false);
   const [agentReady, setAgentReady] = useState<boolean>(true);
   const [agentError, setAgentError] = useState<string | null>(null);
 
@@ -99,12 +99,6 @@ const GeneratedWebsite: NextPage = () => {
 
   // Function to check if the agent is properly configured
   useEffect(() => {
-    if (useMockGeneration) {
-      setAgentReady(true);
-      setAgentError(null);
-      return;
-    }
-
     const checkAgentConfig = async () => {
       try {
         const response = await fetch('/api/check-agent-status');
@@ -120,7 +114,7 @@ const GeneratedWebsite: NextPage = () => {
     };
 
     checkAgentConfig();
-  }, [useMockGeneration]);
+  }, []);
 
   // Function to generate the website
   const generateWebsite = async () => {
@@ -137,59 +131,34 @@ const GeneratedWebsite: NextPage = () => {
         input_data: websiteData.restaurantData,
         sitemap: websiteData.sitemap,
         style_guide: websiteData.brandGuide,
-        use_mock: useMockGeneration 
+        use_mock: false,
+        create_project: true
       };
 
-      // Set up polling for generation status updates if using real agent
+      // Set up polling for generation status updates
       let statusInterval: NodeJS.Timeout | null = null;
       
-      if (!useMockGeneration) {
-        statusInterval = setInterval(async () => {
-          try {
-            const statusResponse = await fetch('/api/generation-status');
-            if (statusResponse.ok) {
-              const statusData = await statusResponse.json();
-              if (statusData.status === 'complete' || statusData.status === 'error') {
-                if (statusInterval) clearInterval(statusInterval);
-              }
-              
-              setGenerationStatus(prev => ({
-                ...prev,
-                currentProgress: statusData.currentProgress
-              }));
+      statusInterval = setInterval(async () => {
+        try {
+          const statusResponse = await fetch('/api/generation-status');
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            if (statusData.status === 'complete' || statusData.status === 'error') {
+              if (statusInterval) clearInterval(statusInterval);
             }
-          } catch (error) {
-            console.error('Error polling generation status:', error);
-          }
-        }, 2000);
-      } else {
-        // Simulation of progress updates (this would be handled by SSE or WebSockets in a real implementation)
-        const progressInterval = setInterval(() => {
-          setGenerationStatus(prev => {
-            if (prev.status !== 'generating') {
-              clearInterval(progressInterval);
-              return prev;
-            }
-
-            // Simulate progress updates
-            const pages = Object.keys(websiteData.sitemap);
-            const randomPage = pages[Math.floor(Math.random() * pages.length)];
-            const sections = websiteData.sitemap[randomPage];
-            const randomSection = sections[Math.floor(Math.random() * sections.length)];
-
-            return {
+            
+            setGenerationStatus(prev => ({
               ...prev,
-              currentProgress: {
-                page: randomPage,
-                section: randomSection.type,
-                status: 'Generating code...'
-              }
-            };
-          });
-        }, 2000);
-      }
+              currentProgress: statusData.currentProgress
+            }));
+          }
+        } catch (error) {
+          console.error('Error polling generation status:', error);
+        }
+      }, 2000);
 
       // Make the API request
+      console.log('[DEBUG] Sending website generation request:', JSON.stringify(requestData, null, 2));
       const response = await fetch('/api/generate-website', {
         method: 'POST',
         headers: {
@@ -219,6 +188,11 @@ const GeneratedWebsite: NextPage = () => {
       if (data.generatedItems?.pages) {
         setGeneratedPages(data.generatedItems.pages);
       }
+      
+      // Store the project ID if available for linking to the project page
+      if (data.websiteProject?.id) {
+        sessionStorage.setItem('generatedProjectId', data.websiteProject.id);
+      }
 
       // Load the first page
       loadGeneratedPage('Home');
@@ -236,30 +210,21 @@ const GeneratedWebsite: NextPage = () => {
   const loadGeneratedPage = (pageName: string) => {
     setActivePage(pageName);
     
-    // In a real implementation, we would dynamically import the generated pages
-    // For this mock, we'll simulate by dynamically loading our pre-made components
     try {
-      // Create a dynamic component based on the page name (for simulation only)
-      if (process.env.NEXT_PUBLIC_MOCK_GENERATION === 'true') {
-        // Simulate loading a dynamic component
-        import(`../../components/generated/${pageName === 'Home' ? 'Hero' : pageName}`).then(
-          (module) => {
-            setActiveComponent(() => module.default);
-          }
-        ).catch(error => {
-          console.error(`Failed to load component for ${pageName}:`, error);
-          setActiveComponent(null);
-        });
-      } else {
-        // In real implementation, load the actual generated page
-        const Component = dynamic(() => import(`./generated/${pageName.toLowerCase()}`), {
-          loading: () => <div>Loading {pageName} page...</div>,
-          ssr: false
-        });
-        setActiveComponent(() => Component);
-      }
+      // Create a dynamic component based on the page name
+      // Load the actual generated page from temp directory
+      const Component = dynamic(() => import(`../../temp/generated/pages/${pageName.toLowerCase()}`), {
+        loading: () => <div className="flex items-center justify-center h-[600px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Loading {pageName} page...</p>
+          </div>
+        </div>,
+        ssr: false
+      });
+      setActiveComponent(() => Component);
     } catch (error) {
-      console.error(`Error loading page ${pageName}:`, error);
+      console.error(`Error in loadGeneratedPage for ${pageName}:`, error);
       setActiveComponent(null);
     }
   };
@@ -317,40 +282,14 @@ const GeneratedWebsite: NextPage = () => {
             </div>
             
             <div className="p-4 mb-6 rounded-lg border-2 border-blue-100 bg-blue-50">
-              <h3 className="text-lg font-medium text-blue-800 mb-2">Generation Mode</h3>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${useMockGeneration ? 'bg-gray-300' : 'bg-green-500'}`}>
-                    <input 
-                      type="checkbox" 
-                      id="useMockGeneration" 
-                      checked={!useMockGeneration} 
-                      onChange={() => setUseMockGeneration(!useMockGeneration)}
-                      className="peer sr-only" 
-                    />
-                    <span 
-                      className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${!useMockGeneration ? 'translate-x-5' : 'translate-x-1'}`}
-                    ></span>
-                  </div>
-                  <label htmlFor="useMockGeneration" className="ml-3 text-sm font-medium">
-                    {useMockGeneration ? 'Mock Generation (Fast)' : 'Real AI Generation'}
-                  </label>
-                </div>
-                <div className="text-sm">
-                  {useMockGeneration ? 
-                    <span className="text-gray-600">Creates placeholder files without AI</span> :
-                    <span className="text-green-700 font-medium">Uses AI to generate full website code</span>
-                  }
-                </div>
-              </div>
-              <p className="mt-2 text-xs text-blue-600 italic">
-                {useMockGeneration 
-                  ? "Mock mode is useful for testing and development, but won't create a real website." 
-                  : "Real mode uses the AI agent to generate actual code. Requires ANTHROPIC_API_KEY and may take longer."}
+              <h3 className="text-lg font-medium text-blue-800 mb-2">AI Code Generation</h3>
+              <p className="mt-2 text-sm text-blue-600">
+                This will use our AI agent to generate actual code for your website based on your specifications.
+                The process may take a few minutes to complete.
               </p>
             </div>
 
-            {!useMockGeneration && !agentReady && (
+            {!agentReady && (
               <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                 <div className="flex items-start">
                   <svg className="h-6 w-6 text-yellow-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -366,12 +305,6 @@ const GeneratedWebsite: NextPage = () => {
                       <li>Verify that code_action_agent.py exists in the agents directory</li>
                       <li>Set PYTHON_SCRIPT_PATH in .env if your agent is in a custom location</li>
                     </ul>
-                    <button
-                      onClick={() => setUseMockGeneration(true)}
-                      className="mt-3 px-3 py-1 bg-yellow-200 text-yellow-800 text-sm rounded hover:bg-yellow-300 transition"
-                    >
-                      Switch to Mock Mode
-                    </button>
                   </div>
                 </div>
               </div>
@@ -381,11 +314,11 @@ const GeneratedWebsite: NextPage = () => {
               <button
                 onClick={generateWebsite}
                 className={`px-4 py-2 text-white rounded transition ${
-                  (!useMockGeneration && !agentReady) ? 
+                  (!agentReady) ? 
                     'bg-gray-400 cursor-not-allowed' : 
                     'bg-blue-600 hover:bg-blue-700'
                 }`}
-                disabled={!useMockGeneration && !agentReady}
+                disabled={!agentReady}
               >
                 Generate Website
               </button>
@@ -437,6 +370,30 @@ const GeneratedWebsite: NextPage = () => {
                         </ul>
                       </div>
                     </div>
+                    
+                    <div className="mt-4 flex space-x-3">
+                      {sessionStorage.getItem('generatedProjectId') && (
+                        <Link 
+                          href={`/projects/${sessionStorage.getItem('generatedProjectId')}`}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-flex items-center"
+                        >
+                          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          View Full Project
+                        </Link>
+                      )}
+                      
+                      <a 
+                        href={`/api/projects/${sessionStorage.getItem('generatedProjectId')}?action=download`}
+                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition inline-flex items-center"
+                      >
+                        <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download Project
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
@@ -463,20 +420,6 @@ const GeneratedWebsite: NextPage = () => {
                   >
                     Try Again
                   </button>
-                  {!useMockGeneration && (
-                    <button
-                      onClick={() => {
-                        setUseMockGeneration(true);
-                        setGenerationStatus({
-                          status: 'idle',
-                          message: 'Ready to generate website'
-                        });
-                      }}
-                      className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
-                    >
-                      Switch to Mock Mode
-                    </button>
-                  )}
                 </div>
               </div>
             )}
